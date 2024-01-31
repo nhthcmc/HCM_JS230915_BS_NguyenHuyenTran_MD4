@@ -1,5 +1,5 @@
 import { useEffect } from 'react'
-import RouteIndex from './routes/RouteIndex'
+import { router as Router } from './routes/index'
 import api from './services/apis/index'
 import { useDispatch } from 'react-redux'
 import { taskAction } from './store/slices/task.slice'
@@ -15,6 +15,6 @@ export default function App() {
   }, [])
 
   return (
-    <RouteIndex />
+    <Router />
   )
 }
