@@ -1,20 +1,7 @@
-import { useEffect } from 'react'
-import { router as Router } from './routes/index'
-import api from './services/apis/index'
-import { useDispatch } from 'react-redux'
-import { taskAction } from './store/slices/task.slice'
+import Page from "./page/Page";
 
 export default function App() {
-  const dispatch = useDispatch();
-  useEffect(() => {
-    const fetch = async () => {
-      let result = await api.task.findAll();
-      dispatch(taskAction.setData(result?.data.data))
-    }
-    fetch()
-  }, [])
-
   return (
-    <Router />
+    <Page />
   )
 }

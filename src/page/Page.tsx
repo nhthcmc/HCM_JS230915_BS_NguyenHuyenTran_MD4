@@ -1,119 +1,122 @@
-import React, { useEffect } from 'react'
-import { useSelector, useDispatch } from 'react-redux';
-import { Store } from '../store'
-import { taskAction } from '../store/slices/task.slice'
-import api from '../services/apis/index';
+import React, { useEffect, useState } from 'react';
+// import { useDispatch } from 'react-redux';
+import { Task, updateTask } from '../common/interface';
+import apis from '../services/apis';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faTrash } from '@fortawesome/free-solid-svg-icons';
 import './page.scss'
 
-interface PageProps {
-    //
-}
-
-const Page: React.FC<PageProps> = (props) => {
-    const dispatch = useDispatch()
-    const taskStore = useSelector((store: Store) => store.taskStore);
-    async function handleAddTask(e: React.FormEvent) {
-        e.preventDefault();
-        let newTask = {
-            "name": (e.target as any).task.value,
+export default function Page() {
+    // const dispatch = useDispatch()
+    const [data, setData] = useState<Task[]>([])
+    useEffect(() => {
+        const fetchData = async () => {
+            try {
+                let result: any = await apis.task.findAll();
+                if (result.status == 200) {
+                    setData(result.data.data)
+                }
+            } catch (err) {
+                console.log('err', err);
+            }
         }
-        if (!newTask.name) {
-            alert("Please fill in")
+        fetchData()
+    }, [])
+    const handleAdd = async (e: React.FormEvent<HTMLFormElement>) => {
+        e.preventDefault();
+        if ((e.target as any).taskName.value == '') {
+            alert(`Please fill in`)
             return
         }
-        api.task.create(newTask)
-            .then((res) => {
-                if (res.status == 200) {
-                    dispatch(taskAction.create(res.data.data));
-                    (e.target as any).task.value = ""
-                }
-            })
-            .catch((err) => {
-                console.log("err", err)
-                alert("Failed")
-            })
-        async function handleUpdateTask(taskId: number, done: boolean) {
-            // e.preventDefault();
-            const updatedStatus = done ? 'completed' : 'uncompleted'
-            try {
-                const res = await api.task.update(taskId, { status: updatedStatus })
-                if (res.status == 200) {
-                    dispatch(taskAction.update(res.data.data))
-                    alert("Updated")
-                }
-            } catch (err) {
-                console.log('err', err)
-                alert("Failed")
-            }
+        const taskData = {
+            name: (e.target as any).taskName.value
         }
-        async function handleDeleteTask(taskId: number) {
-            try {
-                const res = await api.task.delete(taskId)
-                if (res.status == 200) {
-                    dispatch(taskAction.delete(taskId))
-                    alert("Done")
-                } else {
-                    alert("Failed")
-                }
-            } catch (err) {
-                console.log('err', err)
-                alert("Failed")
+        try {
+            let result = await apis.task.create(taskData)
+            if (result.status == 200) {
+                setData([...data, result.data.data]);
+                alert("Added");
+                (e.target as any).taskName.value = '';
             }
+        } catch (err: any) {
+            console.log('err', err);
+            (e.target as any).task.value = '';
+            alert("Error")
         }
-        useEffect(() => {
-            api.task.findAll()
-                .then(res => {
-                    if (res.status == 200) {
-                        dispatch(taskAction.setData(res.data.data))
-                    }
-                })
-                .catch(err => {
-                    console.log('err', err)
-                })
-        }, [])
-        return (
-            <div className='list'>
-                <h2>Todo List</h2>
-                <h3>Get things done, one item at a time</h3>
-                <div className='tasks'>
-                    {
-                        taskStore.task?.map((item) => {
-                            return (
-                                <div className='item' key={Date.now() * Math.random()}>
-                                    <span className='item-name' style={{ textDecoration: item.status == 'completed' ? 'line-through' : 'none', color: item.status == 'completed' ? '#f3979a' : '#fff' }}>{item.name}</span>
-                                    <input
+    }
+    const handleDelete = async (taskId: number) => {
+        try {
+            let result = await apis.task.delete(taskId);
+            if (result.status == 200) {
+                let currentData = data.filter(item => item.id != taskId)
+                setData(currentData);
+                alert("Deleted")
+            }
+        } catch (err) {
+            console.log('err', err);
+        }
+    }
+    // const handleUpdate = async (taskId: number, checked: boolean) => {
+    //     const newStatus = checked ? 'completed' : 'uncompleted'
+    //     try {
+    //         let result = await apis.task.update(taskId, { status: newStatus })
+    //         if (result.status == 200) {
+    //             let currentData = data.map(item => {
+    //                 if (item.id == result.data.data.id) {
+    //                     return result.data.data
+    //                 } else {
+    //                     return item
+    //                 }
+    //             })
+    //             setData(currentData);
+    //             alert("Updated")
+    //         }
+    //     } catch (err) {
+    //         console.log('err', err);
+    //     }
+    // }
+    return (
+        <div className='page'>
+            <div className='container'>
+                <h1>Todo List</h1>
+                <p style={{ fontSize: 13 }} className='text'>Get things done, one item at a time!</p>
+                {
+                    data?.map(item => (
+                        <>
+                            <div key={Date.now() * Math.random()} className='item'>
+                                <span className='content' style={item.status ? { textDecoration: 'line-through', color: "#ccc" } : undefined}>{item.name}</span>
+                                <div className='tools'>
+                                    {/* <input
                                         type='checkbox'
                                         checked={item.status == 'completed'}
-                                        onChange={(e) => handleUpdateTask(item.id, e.target.checked)}
-                                    />
+                                        onChange={(e) => handleUpdate(item.id, e.target.checked)}
+                                    /> */}
                                     <button
                                         onClick={() => {
-                                            handleDeleteTask(item.id)
+                                            handleDelete(item.id)
                                         }}>
                                         <FontAwesomeIcon icon={faTrash} style={{ cursor: 'pointer' }} />
                                     </button>
                                 </div>
-                            )
-                        })
-                    }
+                            </div>
+                        </>
+                    ))
+                }
+                <div className='toggle'>
+                    <div className='box'>
+                        <p style={{ fontSize: 13 }}>Move done items at the end?</p>
+                        <input type="checkbox" id="toggle" />
+                        <label htmlFor="toggle"></label>
+                    </div>
                 </div>
-                <div className='move'>
-                    <span>Move done items at the end?</span>
-                </div>
-                <div className='add'>
-                    <h3>Add to the todo list</h3>
-                    <form onSubmit={(e) => {
-                        handleAddTask(e)
-                    }}>
-                        <input type='text' name='task'></input>
-                        <button type='submit' name='create'>add item</button>
-                    </form>
-                    <FontAwesomeIcon icon={faTrash} style={{ cursor: 'pointer' }} />
-                </div>
+                <p style={{ fontSize: 20, marginBottom: 5 }}>Add to the todo list:</p>
+                <form onSubmit={(e) => {
+                    handleAdd(e)
+                }}>
+                    <input type='text' name='taskName'></input>
+                    <button type='submit'>ADD ITEM</button>
+                </form>
             </div>
-        )
-    }
+        </div>
+    )
 }
-export default Page;
